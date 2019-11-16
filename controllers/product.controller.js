@@ -72,7 +72,7 @@ function make_smart_search_query(field,original_query){
                                "other_info^5",
                                ],
                     "type" : "best_fields",
-                    "fuzziness" : fuzzy
+                    "fuzziness" : 'auto'
                 }
             }
             
@@ -145,7 +145,8 @@ exports.get_doc_by_area=function(req,res,next){
             "name" : result.hits.hits[i]['_source']['name'],
 		    "field" : result.hits.hits[i]['_source']['field'],
 		    "area" : result.hits.hits[i]['_source']['area'],
-		    "experience" : result.hits.hits[i]['_source']['experience']
+		    "experience" : result.hits.hits[i]['_source']['experience'],
+            "image" : result.hits.hits[i]['_source']['image']
         }
         truncated_result.push(temp);
     }
@@ -166,7 +167,8 @@ exports.get_doc_by_field=function(req,res,next){
             "name" : result.hits.hits[i]['_source']['name'],
 		    "field" : result.hits.hits[i]['_source']['field'],
 		    "area" : result.hits.hits[i]['_source']['area'],
-		    "experience" : result.hits.hits[i]['_source']['experience']
+		    "experience" : result.hits.hits[i]['_source']['experience'],
+            "image" : result.hits.hits[i]['_source']['image']
         }
         truncated_result.push(temp);
     }
@@ -180,13 +182,27 @@ exports.add_smartsearch=function(req,res,next){
         "query" : req.body['query'],
         "patient_age" : req.body["patient_age"]
     }
-    var response = request('POST',flask_url+'/search',{json:query_json});
+    //var response = request('POST',flask_url+'/search',{json:query_json});
+    //var result = JSON.parse(response.getBody('utf8'));
+    //result = result['field'];
+    query_json = make_smart_search_query('',req.body['query']);
+    var response = request('POST',elastic_url+'/doctor/_search',{json:query_json});
     var result = JSON.parse(response.getBody('utf8'));
-    result = result['field'];
-    query_json = make_smart_search_query(result,req.body['query']);
-    var response = request('POST',flask_url+'/search',{json:query_json});
-    var result = JSON.parse(response.getBody('utf8'));
-    res.status(200).json(result.hits.hits);
+    var temp = {};
+    var truncated_result = [];
+    for(i=0;i<result.hits.hits.length;i++){
+        temp = {
+            "id" : result.hits.hits[i]['_id'],
+            "name" : result.hits.hits[i]['_source']['name'],
+		    "field" : result.hits.hits[i]['_source']['field'],
+		    "area" : result.hits.hits[i]['_source']['area'],
+            "experience" : result.hits.hits[i]['_source']['experience'],
+            "image" : result.hits.hits[i]['_source']['image']
+        }
+        truncated_result.push(temp);
+    }
+    res.status(200).json(truncated_result);
+    return;
 };
 
 
